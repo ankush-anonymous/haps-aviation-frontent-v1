@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plane, User, Settings, LogOut, BarChart3, Calendar } from "lucide-react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import type { MentorResponse } from "@/lib/api"
+import type { MentorResponse } from "@/lib/interfaces"
 
 export default function MentorLayout({
   children,
@@ -20,41 +20,37 @@ export default function MentorLayout({
   const router = useRouter()
   const pathname = usePathname()
 
-  useEffect(() => {
-    
-
+   useEffect(() => {
     const mentorData = localStorage.getItem("mentorData")
     const isMentorLoggedIn = localStorage.getItem("isMentorLoggedIn")
 
+    // Exception for signup and login routes
+    const publicPaths = ["/mentor/login", "/mentor/signup", "/mentor/onboard"]
+
+    // Skip auth check for public routes
+    if (publicPaths.includes(pathname)) return
+
+    // Redirect if not logged in
     if (!mentorData || !isMentorLoggedIn) {
       router.push("/mentor/login")
-      return
     }
+  }, [pathname, router])
 
-    try {
-      const parsedMentor = JSON.parse(mentorData)
-      setMentor(parsedMentor)
-    } catch (error) {
-      console.error("Failed to parse mentor data:", error)
-      router.push("/mentor/login")
-    }
 
-    // Set active tab based on current path
-    if (pathname.includes("/schedule")) {
-      setActiveTab("schedule")
-    } else {
-      setActiveTab("dashboard")
-    }
-  }, [router, pathname])
+   const handleLogout = () => {
+    localStorage.removeItem("adminData")
+    localStorage.removeItem("isAdminLoggedIn")
 
-  const handleLogout = () => {
-    localStorage.removeItem("mentorData")
-    localStorage.removeItem("isMentorLoggedIn")
-    router.push("/mentor/login")
+    sessionStorage.clear()
+
+    router.push("/admin/login")
   }
 
   // Render login page without layout
   if (pathname === "/mentor/login") {
+    return <>{children}</>
+  }
+  if (pathname === "/mentor/signup") {
     return <>{children}</>
   }
 
@@ -109,12 +105,7 @@ export default function MentorLayout({
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/mentor/settings" className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
+              
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout

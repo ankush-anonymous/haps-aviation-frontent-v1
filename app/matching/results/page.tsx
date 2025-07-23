@@ -4,28 +4,14 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Star, Calendar, Clock, Award, MapPin, Languages } from "lucide-react"
+import { Star, Calendar, Clock, Award, Languages, Loader2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-
-interface Mentor {
-  id: string
-  name: string
-  title: string
-  experience: string
-  rating: number
-  reviews: number
-  specialties: string[]
-  languages: string[]
-  location: string
-  price: string
-  availability: string
-  image: string
-  matchScore: number
-}
+import { mentorAPI, type MentorResponse } from "@/lib/api"
 
 export default function MatchingResults() {
-  const [mentors, setMentors] = useState<Mentor[]>([])
+  const [mentors, setMentors] = useState<MentorResponse[]>([])
+  const [loading, setLoading] = useState(true)
   const [userAnswers, setUserAnswers] = useState<any>({})
 
   useEffect(() => {
@@ -38,57 +24,22 @@ export default function MatchingResults() {
     }
     setUserAnswers(answers)
 
-    // Mock mentor data - in real app, this would come from API based on matching algorithm
-    const mockMentors: Mentor[] = [
-      {
-        id: "1",
-        name: "Captain Sarah Johnson",
-        title: "Commercial Airline Pilot & DGCA Examiner",
-        experience: "15+ years",
-        rating: 4.9,
-        reviews: 127,
-        specialties: ["DGCA Clearance", "Ground School", "Exam Preparation"],
-        languages: ["English", "Hindi"],
-        location: "Delhi, India",
-        price: "₹1,429",
-        availability: "Available this week",
-        image: "/placeholder.svg?height=300&width=300",
-        matchScore: 95,
-      },
-      {
-        id: "2",
-        name: "Captain Mike Rodriguez",
-        title: "Flight Training Specialist",
-        experience: "12+ years",
-        rating: 4.8,
-        reviews: 89,
-        specialties: ["Flight School Selection", "Simulator Training", "Career Guidance"],
-        languages: ["English"],
-        location: "Mumbai, India",
-        price: "₹1,429",
-        availability: "Available tomorrow",
-        image: "/placeholder.svg?height=300&width=300",
-        matchScore: 92,
-      },
-      {
-        id: "3",
-        name: "Captain Priya Sharma",
-        title: "Aviation Career Consultant",
-        experience: "10+ years",
-        rating: 4.9,
-        reviews: 156,
-        specialties: ["Subject Doubts", "Ground School", "International Training"],
-        languages: ["English", "Hindi"],
-        location: "Bangalore, India",
-        price: "₹1,429",
-        availability: "Available this week",
-        image: "/placeholder.svg?height=300&width=300",
-        matchScore: 88,
-      },
-    ]
-
-    setMentors(mockMentors)
+    // Fetch mentors from API
+    fetchMentors()
   }, [])
+
+  const fetchMentors = async () => {
+    setLoading(true)
+    try {
+      const response = await mentorAPI.getAllMentors(50, 0) // Get up to 50 mentors
+      setMentors(response.mentors || [])
+    } catch (error) {
+      console.error("Failed to fetch mentors:", error)
+      setMentors([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getMatchReasonText = () => {
     const area = userAnswers.step1
@@ -96,7 +47,34 @@ export default function MatchingResults() {
     const goal = userAnswers.step3
     const stage = userAnswers.step4
 
-    return `Based on your need for ${area} guidance at ${level} level, with the goal of "${goal}" at the ${stage} stage.`
+    return `Based on your need for ${area || "aviation"} guidance at ${level || "beginner"} level, with the goal of "${goal || "career advancement"}" at the ${stage || "planning"} stage.`
+  }
+
+  const getMentorDisplayName = (mentor: MentorResponse) => {
+    return `${mentor.first_name} ${mentor.last_name}`
+  }
+
+  const getMentorExperience = (mentor: MentorResponse) => {
+    return `${mentor.years_of_experience}+ years`
+  }
+
+  const getMentorPrice = (mentor: MentorResponse) => {
+    return `₹${mentor.mentoring_fee}`
+  }
+
+  const getMentorAvailability = (mentor: MentorResponse) => {
+    return mentor.availability_slots.length > 0 ? "Available this week" : "Limited availability"
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-blue-700">Finding the best mentors for you...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -121,98 +99,110 @@ export default function MatchingResults() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-blue-900 mb-2">{mentors.length} Mentors Available for You</h2>
-            <p className="text-blue-700">Sorted by best match score and availability</p>
+            <p className="text-blue-700">Expert aviation mentors ready to guide your journey</p>
           </div>
 
-          <div className="space-y-6">
-            {mentors.map((mentor) => (
-              <Card key={mentor.id} className="border-blue-200 hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="grid lg:grid-cols-4 gap-6">
-                    {/* Mentor Image and Basic Info */}
-                    <div className="lg:col-span-1">
-                      <div className="text-center">
-                        <Image
-                          src={mentor.image || "/placeholder.svg"}
-                          alt={mentor.name}
-                          width={120}
-                          height={120}
-                          className="w-24 h-24 rounded-full mx-auto mb-3 object-cover"
-                        />
-                        <Badge className="bg-green-100 text-green-800 mb-2">{mentor.matchScore}% Match</Badge>
-                        <div className="flex items-center justify-center mb-2">
-                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                          <span className="ml-1 text-sm font-medium text-blue-900">
-                            {mentor.rating} ({mentor.reviews} reviews)
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Mentor Details */}
-                    <div className="lg:col-span-2">
-                      <h3 className="text-xl font-bold text-blue-900 mb-1">{mentor.name}</h3>
-                      <p className="text-blue-700 mb-3">{mentor.title}</p>
-
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center text-sm text-blue-600">
-                          <Award className="h-4 w-4 mr-2" />
-                          {mentor.experience} experience
-                        </div>
-                        <div className="flex items-center text-sm text-blue-600">
-                          <MapPin className="h-4 w-4 mr-2" />
-                          {mentor.location}
-                        </div>
-                        <div className="flex items-center text-sm text-blue-600">
-                          <Languages className="h-4 w-4 mr-2" />
-                          {mentor.languages.join(", ")}
-                        </div>
-                        <div className="flex items-center text-sm text-blue-600">
-                          <Clock className="h-4 w-4 mr-2" />
-                          {mentor.availability}
+          {mentors.length === 0 ? (
+            <Card className="border-blue-200 text-center py-12">
+              <CardContent>
+                <p className="text-blue-700 text-lg mb-4">No mentors found at the moment.</p>
+                <p className="text-blue-600">Please check back later or contact our support team.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {mentors.map((mentor) => (
+                <Card key={mentor.id} className="border-blue-200 hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="grid lg:grid-cols-4 gap-6">
+                      {/* Mentor Image and Basic Info */}
+                      <div className="lg:col-span-1">
+                        <div className="text-center">
+                          <Image
+                            src="/placeholder.svg?height=120&width=120"
+                            alt={getMentorDisplayName(mentor)}
+                            width={120}
+                            height={120}
+                            className="w-24 h-24 rounded-full mx-auto mb-3 object-cover"
+                          />
+                          <Badge className="bg-green-100 text-green-800 mb-2">Expert Match</Badge>
+                          <div className="flex items-center justify-center mb-2">
+                            <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                            <span className="ml-1 text-sm font-medium text-blue-900">4.8 (50+ reviews)</span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-blue-900 mb-2">Specialties:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {mentor.specialties.map((specialty, index) => (
-                            <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
-                              {specialty}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                      {/* Mentor Details */}
+                      <div className="lg:col-span-2">
+                        <h3 className="text-xl font-bold text-blue-900 mb-1">{getMentorDisplayName(mentor)}</h3>
+                        <p className="text-blue-700 mb-3">{mentor.current_occ_role}</p>
 
-                    {/* Booking Section */}
-                    <div className="lg:col-span-1">
-                      <div className="text-center lg:text-right">
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center text-sm text-blue-600">
+                            <Award className="h-4 w-4 mr-2" />
+                            {getMentorExperience(mentor)} experience
+                          </div>
+                          <div className="flex items-center text-sm text-blue-600">
+                            <Languages className="h-4 w-4 mr-2" />
+                            {mentor.languages_spoken.join(", ")}
+                          </div>
+                          <div className="flex items-center text-sm text-blue-600">
+                            <Clock className="h-4 w-4 mr-2" />
+                            {getMentorAvailability(mentor)}
+                          </div>
+                        </div>
+
                         <div className="mb-4">
-                          <div className="text-2xl font-bold text-blue-900">{mentor.price}</div>
-                          <div className="text-sm text-blue-600">per session</div>
+                          <h4 className="text-sm font-semibold text-blue-900 mb-2">Specialties:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {mentor.area_of_expertise.slice(0, 3).map((specialty, index) => (
+                              <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
+                                {specialty}
+                              </Badge>
+                            ))}
+                            {mentor.area_of_expertise.length > 3 && (
+                              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                                +{mentor.area_of_expertise.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
                         </div>
 
-                        <Link href={`/payment?mentor=${mentor.id}`}>
-                          <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-3">
-                            <Calendar className="mr-2 h-4 w-4" />
-                            Book Consultation
-                          </Button>
-                        </Link>
+                        {mentor.profile_bio && (
+                          <p className="text-sm text-blue-600 line-clamp-2">{mentor.profile_bio}</p>
+                        )}
+                      </div>
 
-                        <Button
-                          variant="outline"
-                          className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 bg-transparent"
-                        >
-                          View Profile
-                        </Button>
+                      {/* Booking Section */}
+                      <div className="lg:col-span-1">
+                        <div className="text-center lg:text-right">
+                          <div className="mb-4">
+                            <div className="text-2xl font-bold text-blue-900">{getMentorPrice(mentor)}</div>
+                            <div className="text-sm text-blue-600">per session</div>
+                          </div>
+
+                          <Link href={`/mentee/book-appointment?mentor=${mentor.id}`}>
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-3">
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Book Consultation
+                            </Button>
+                          </Link>
+
+                          <Button
+                            variant="outline"
+                            className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 bg-transparent"
+                          >
+                            View Profile
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Additional Help */}
           <Card className="mt-12 border-blue-200 bg-blue-50">
@@ -227,9 +217,11 @@ export default function MatchingResults() {
                 <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 bg-transparent">
                   Schedule a Call with Our Team
                 </Button>
-                <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 bg-transparent">
-                  Retake Matching Quiz
-                </Button>
+                <Link href="/matching/step-1">
+                  <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100 bg-transparent">
+                    Retake Matching Quiz
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>

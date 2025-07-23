@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+import {CreateMeetingRequest, MeetingResponse,FilteredMeetingsResponse,CreateMentorRequest,MentorResponse,MentorsListResponse,CreateMenteeRequest,MenteeResponse,MenteesListResponse,CreateAdminRequest,AdminResponse,MenteeLoginResponse } from "./interfaces"
 
 // Generic API request function
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -29,10 +30,10 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
 // Mentor API functions
 export const mentorAPI = {
   // Create a new mentor
- loginMentor: async (phoneNumber: string): Promise<{ mentor: MentorResponse }> => {
+ loginMentor: async (email: string): Promise<{ mentor: MentorResponse }> => {
   return apiRequest<{ mentor: MentorResponse }>("/api/v1/mentor/loginMentor", {
     method: "POST",
-    body: JSON.stringify({ phone_number: phoneNumber }),
+    body: JSON.stringify({ email: email }),
   });
 },
 
@@ -173,112 +174,32 @@ export const adminAPI = {
   },
 }
 
-// Type definitions
-export interface CreateMentorRequest {
-  first_name: string
-  last_name: string
-  email: string
-  phone_number: string
-  linkedin_url?: string
-  current_occ_role: string
-  years_of_experience: number
-  area_of_expertise: string[]
-  availability_slots: string[]
-  profile_bio: string
-  languages_spoken: string[]
-  mentoring_fee: number
-  level_comfortable: string
-  documents?: string[]
-  requirements_from_mentees?: string
-}
 
-export interface MentorResponse {
-  id: string
-  first_name: string
-  last_name: string
-  email: string
-  phone_number: string
-  linkedin_url?: string
-  current_occ_role: string
-  years_of_experience: number
-  area_of_expertise: string[]
-  availability_slots: string[]
-  profile_bio: string
-  languages_spoken: string[]
-  mentoring_fee: number
-  level_comfortable: string
-  documents?: string[]
-  requirements_from_mentees?: string
-  created_at: string
-  updated_at: string
-}
+// Meeting API functions
+export const meetingAPI = {
+  // Create a new meeting
+  createMeeting: async (meetingData: CreateMeetingRequest): Promise<MeetingResponse> => {
+    return apiRequest<MeetingResponse>("/api/v1/meeting/createMeeting", {
+      method: "POST",
+      body: JSON.stringify(meetingData),
+    })
+  },
 
-export interface MentorsListResponse {
-  mentors: MentorResponse[]
-  total: number
-  limit: number
-  offset: number
-}
+  // Get meeting by ID
+  getMeetingById: async (id: string): Promise<MeetingResponse> => {
+    return apiRequest<MeetingResponse>(`/api/v1/meeting/getMeetingById/${id}`)
+  },
 
-// Mentee Type definitions
-export interface CreateMenteeRequest {
-  full_name: string
-  email: string
-  phone_number: string
-  age_group: string
-  current_stage: string
-  key_goal: string
-  preferred_language: string
-  preferred_mentor_domain: string[]
-  availability: string[]
-  budget: number
-  questions_for_mentor?: string
-  previous_attempts?: string
-}
+  // Get filtered meetings
+  getFilteredMeetings: async (mentorId?: string, menteeId?: string): Promise<FilteredMeetingsResponse> => {
+    const params = new URLSearchParams()
+    if (mentorId) params.append("mentorId", mentorId)
+    if (menteeId) params.append("menteeId", menteeId)
 
-export interface MenteeResponse {
-  id: string
-  full_name: string
-  email: string
-  phone_number: string
-  age_group: string
-  current_stage: string
-  key_goal: string
-  preferred_language: string
-  preferred_mentor_domain: string[]
-  availability: string[]
-  budget: number
-  questions_for_mentor?: string
-  previous_attempts?: string
-  created_at: string
-  updated_at: string
-}
-
-interface MenteeLoginResponse {
-  message: string
-  mentee: MenteeResponse
+    return apiRequest<FilteredMeetingsResponse>(`/api/v1/meeting/getFilteredMeetings?${params.toString()}`)
+  },
 }
 
 
-export interface MenteesListResponse {
-  mentees: MenteeResponse[]
-  total: number
-  limit: number
-  offset: number
-}
 
-// Admin Type definitions
-export interface CreateAdminRequest {
-  name: string
-  email: string
-  phone_number: string
-}
 
-export interface AdminResponse {
-  id: string
-  name: string
-  email: string
-  phone_number: string
-  created_at: string
-  updated_at: string
-}

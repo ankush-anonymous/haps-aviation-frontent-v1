@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Calendar, Clock, User, AlertCircle } from "lucide-react"
 import { menteeAPI, type CreateMenteeRequest } from "@/lib/api"
+import { useRouter } from "next/navigation"
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -61,7 +63,7 @@ export default function RegisterPage() {
       localStorage.setItem("isLoggedIn", "true")
 
       // Redirect to mentee dashboard
-      window.location.href = "/mentee/dashboard"
+     router.push("/matching/results")
     } catch (error) {
       console.error("Registration failed:", error)
       alert("Registration failed. Please try again.")

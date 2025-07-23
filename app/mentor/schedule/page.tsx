@@ -4,105 +4,45 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, Users, Video, Phone, DollarSign } from "lucide-react"
-import type { MentorResponse } from "@/lib/api"
-
-interface Meeting {
-  id: string
-  menteeName: string
-  menteeEmail: string
-  date: string
-  time: string
-  duration: string
-  status: "Upcoming" | "Completed" | "Cancelled"
-  topic: string
-  amount: number
-  mode: "Video Call" | "Phone Call"
-  meetingLink?: string
-}
+import { Calendar, Clock, Users, Video, DollarSign, Loader2 } from "lucide-react"
+import type { MentorResponse, MeetingResponse } from "@/lib/api"
+import { meetingAPI } from "@/lib/api"
 
 export default function MentorSchedule() {
   const [mentor, setMentor] = useState<MentorResponse | null>(null)
+  const [meetings, setMeetings] = useState<MeetingResponse[]>([])
+  const [loadingMeetings, setLoadingMeetings] = useState(false)
+
+  const fetchMeetings = async () => {
+    if (!mentor) return
+
+    setLoadingMeetings(true)
+    try {
+      const response = await meetingAPI.getFilteredMeetings(mentor.id, undefined)
+      setMeetings(response.data || [])
+    } catch (error) {
+      console.error("Failed to fetch meetings:", error)
+      setMeetings([])
+    } finally {
+      setLoadingMeetings(false)
+    }
+  }
 
   useEffect(() => {
     const mentorData = localStorage.getItem("mentorData")
     if (mentorData) {
-      setMentor(JSON.parse(mentorData))
+      const parsedMentor = JSON.parse(mentorData)
+      setMentor(parsedMentor)
+      // Fetch meetings after setting mentor
+      setTimeout(() => fetchMeetings(), 100)
     }
   }, [])
-
-  // Mock meetings data
-  const meetings: Meeting[] = [
-    {
-      id: "1",
-      menteeName: "Rahul Kumar",
-      menteeEmail: "rahul.kumar@email.com",
-      date: "2024-01-25",
-      time: "14:00",
-      duration: "90 min",
-      status: "Upcoming",
-      topic: "DGCA Exam Preparation",
-      amount: 1499,
-      mode: "Video Call",
-      meetingLink: "https://meet.google.com/abc-defg-hij",
-    },
-    {
-      id: "2",
-      menteeName: "Priya Patel",
-      menteeEmail: "priya.patel@email.com",
-      date: "2024-01-26",
-      time: "10:00",
-      duration: "60 min",
-      status: "Upcoming",
-      topic: "Flight School Selection",
-      amount: 1499,
-      mode: "Video Call",
-      meetingLink: "https://meet.google.com/xyz-uvwx-yz",
-    },
-    {
-      id: "3",
-      menteeName: "Amit Singh",
-      menteeEmail: "amit.singh@email.com",
-      date: "2024-01-24",
-      time: "16:00",
-      duration: "90 min",
-      status: "Completed",
-      topic: "Career Guidance",
-      amount: 1499,
-      mode: "Phone Call",
-    },
-    {
-      id: "4",
-      menteeName: "Sneha Sharma",
-      menteeEmail: "sneha.sharma@email.com",
-      date: "2024-01-23",
-      time: "11:00",
-      duration: "60 min",
-      status: "Completed",
-      topic: "Subject Doubts - Navigation",
-      amount: 1499,
-      mode: "Video Call",
-    },
-    {
-      id: "5",
-      menteeName: "Vikram Reddy",
-      menteeEmail: "vikram.reddy@email.com",
-      date: "2024-01-27",
-      time: "15:00",
-      duration: "90 min",
-      status: "Upcoming",
-      topic: "Interview Preparation",
-      amount: 1499,
-      mode: "Video Call",
-      meetingLink: "https://meet.google.com/def-ghij-klm",
-    },
-  ]
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Completed":
         return "bg-green-100 text-green-800"
-      case "Upcoming":
+      case "Scheduled":
         return "bg-blue-100 text-blue-800"
       case "Cancelled":
         return "bg-red-100 text-red-800"
@@ -111,7 +51,7 @@ export default function MentorSchedule() {
     }
   }
 
-  const upcomingMeetings = meetings.filter((m) => m.status === "Upcoming")
+  const upcomingMeetings = meetings.filter((m) => m.status === "Scheduled")
   const completedMeetings = meetings.filter((m) => m.status === "Completed")
 
   if (!mentor) {
@@ -184,57 +124,66 @@ export default function MentorSchedule() {
             <CardDescription className="text-blue-700">Your scheduled mentoring sessions</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {upcomingMeetings.map((meeting) => (
-                <div key={meeting.id} className="border border-blue-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-medium text-blue-900">{meeting.menteeName}</h4>
-                      <p className="text-sm text-blue-700">{meeting.topic}</p>
-                      <p className="text-xs text-blue-600">{meeting.menteeEmail}</p>
+            {loadingMeetings ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+                <p className="text-blue-700">Loading meetings...</p>
+              </div>
+            ) : upcomingMeetings.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 text-blue-300 mx-auto mb-4" />
+                <p className="text-blue-700 mb-2">No upcoming meetings</p>
+                <p className="text-sm text-blue-600">Your scheduled sessions will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {upcomingMeetings.map((meeting) => (
+                  <div key={meeting.id} className="border border-blue-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-medium text-blue-900">Mentorship Session</h4>
+                        <p className="text-sm text-blue-700">Duration: {meeting.duration_minutes} minutes</p>
+                        <p className="text-xs text-blue-600">Meeting ID: {meeting.id.slice(0, 8)}...</p>
+                      </div>
+                      <Badge className={getStatusColor(meeting.status)}>{meeting.status}</Badge>
                     </div>
-                    <Badge className={getStatusColor(meeting.status)}>{meeting.status}</Badge>
-                  </div>
 
-                  <div className="flex items-center space-x-4 text-sm text-blue-600 mb-3">
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>{new Date(meeting.date).toLocaleDateString()}</span>
+                    <div className="flex items-center space-x-4 text-sm text-blue-600 mb-3">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{new Date(meeting.scheduled_datetime).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{new Date(meeting.scheduled_datetime).toLocaleTimeString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Video className="h-3 w-3" />
+                        <span>{meeting.mode_of_meeting}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        {meeting.time} ({meeting.duration})
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      {meeting.mode === "Video Call" ? <Video className="h-3 w-3" /> : <Phone className="h-3 w-3" />}
-                      <span>{meeting.mode}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <DollarSign className="h-3 w-3" />
-                      <span>₹{meeting.amount}</span>
-                    </div>
-                  </div>
 
-                  {meeting.meetingLink && (
-                    <div className="flex space-x-2">
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                        <Video className="mr-1 h-3 w-3" />
-                        Join Meeting
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-blue-300 text-blue-700 hover:bg-blue-50 bg-transparent"
-                      >
-                        Reschedule
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    {meeting.meeting_link && (
+                      <div className="flex space-x-2">
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                          <a href={meeting.meeting_link} target="_blank" rel="noopener noreferrer">
+                            <Video className="mr-1 h-3 w-3" />
+                            Join Meeting
+                          </a>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-300 text-blue-700 hover:bg-blue-50 bg-transparent"
+                        >
+                          Reschedule
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -250,9 +199,9 @@ export default function MentorSchedule() {
                 <div key={meeting.id} className="border border-blue-200 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h4 className="font-medium text-blue-900">{meeting.menteeName}</h4>
-                      <p className="text-sm text-blue-700">{meeting.topic}</p>
-                      <p className="text-xs text-blue-600">{meeting.menteeEmail}</p>
+                      <h4 className="font-medium text-blue-900">Mentorship Session</h4>
+                      <p className="text-sm text-blue-700">Duration: {meeting.duration_minutes} minutes</p>
+                      <p className="text-xs text-blue-600">Meeting ID: {meeting.id.slice(0, 8)}...</p>
                     </div>
                     <Badge className={getStatusColor(meeting.status)}>{meeting.status}</Badge>
                   </div>
@@ -260,21 +209,15 @@ export default function MentorSchedule() {
                   <div className="flex items-center space-x-4 text-sm text-blue-600 mb-3">
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-3 w-3" />
-                      <span>{new Date(meeting.date).toLocaleDateString()}</span>
+                      <span>{new Date(meeting.scheduled_datetime).toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="h-3 w-3" />
-                      <span>
-                        {meeting.time} ({meeting.duration})
-                      </span>
+                      <span>{new Date(meeting.scheduled_datetime).toLocaleTimeString()}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      {meeting.mode === "Video Call" ? <Video className="h-3 w-3" /> : <Phone className="h-3 w-3" />}
-                      <span>{meeting.mode}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <DollarSign className="h-3 w-3" />
-                      <span>₹{meeting.amount}</span>
+                      <Video className="h-3 w-3" />
+                      <span>{meeting.mode_of_meeting}</span>
                     </div>
                   </div>
 

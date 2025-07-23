@@ -62,20 +62,25 @@ export default function AvailabilityScheduler({ selectedSlots, onSlotsChange }: 
     setSelectedTimes((prev) => (prev.includes(time) ? prev.filter((t) => t !== time) : [...prev, time]))
   }
 
-  const handleContinue = () => {
-    if (selectedDate && selectedTimes.length > 0) {
-      const selectedDateObj = dates.find((d) => d.date === selectedDate)
-      if (selectedDateObj) {
-        const newSlots = selectedTimes.map(
-          (time) => `${selectedDateObj.dayName} ${selectedDateObj.dayNumber} ${selectedDateObj.monthName} ${time}`,
-        )
-        onSlotsChange([...selectedSlots, ...newSlots])
-        // Reset selections
-        setSelectedDate("")
-        setSelectedTimes([])
-      }
-    }
+ const handleContinue = () => {
+  if (selectedDate && selectedTimes.length > 0) {
+    const newSlots = selectedTimes.map((time) => {
+      // Convert 12-hour time like "09:00 AM" to 24-hour format
+      const [hourMin, period] = time.split(" ");
+      let [hour, minute] = hourMin.split(":").map(Number);
+      if (period === "PM" && hour !== 12) hour += 12;
+      if (period === "AM" && hour === 12) hour = 0;
+
+      const isoTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+      return `${selectedDate}T${isoTime}`; // e.g., "2025-07-15T14:00:00"
+    });
+
+    onSlotsChange([...selectedSlots, ...newSlots]);
+    setSelectedDate("");
+    setSelectedTimes([]);
   }
+};
+
 
   return (
     <Card className="border-blue-200 bg-gradient-to-br from-blue-100 to-blue-200">
@@ -173,7 +178,16 @@ export default function AvailabilityScheduler({ selectedSlots, onSlotsChange }: 
             <div className="space-y-2 max-h-32 overflow-y-auto">
               {selectedSlots.map((slot, index) => (
                 <div key={index} className="flex justify-between items-center p-2 bg-white rounded border">
-                  <span className="text-sm text-gray-700">{slot}</span>
+<span className="text-sm text-gray-700">
+  {new Date(slot).toLocaleString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+  })}
+</span>
                   <Button
                     variant="ghost"
                     size="sm"
