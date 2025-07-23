@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, Users, Video, DollarSign, Loader2 } from "lucide-react"
-import type { MentorResponse, MeetingResponse } from "@/lib/api"
+import type { MentorResponse, MeetingResponse } from "@/lib/interfaces"
 import { meetingAPI } from "@/lib/api"
 
 export default function MentorSchedule() {

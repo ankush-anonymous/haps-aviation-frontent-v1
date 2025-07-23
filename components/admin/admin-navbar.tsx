@@ -7,7 +7,7 @@ import { Plane, User, Settings, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import type { AdminResponse } from "@/lib/api"
+import type { AdminResponse } from "@/lib/interfaces"
 
 export default function AdminNavbar() {
   const [admin, setAdmin] = useState<AdminResponse | null>(null)

@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Calendar, Clock, User, AlertCircle } from "lucide-react"
-import { menteeAPI, type CreateMenteeRequest } from "@/lib/api"
+import { menteeAPI } from "@/lib/api"
+import { type CreateMenteeRequest } from "@/lib/interfaces"
 import { useRouter } from "next/navigation"
 
 export default function RegisterPage() {
